@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*- 
 """
 Classic cart-pole system implemented by Rich Sutton et al.
 Copied from http://incompleteideas.net/sutton/book/code/pole.c
@@ -148,19 +149,37 @@ class CartPoleVisualEnv(gym.Env):
         flat_img = (self.render() / 255.).flatten()
         return np.append(flat_img, np.asarray([self.state[1], self.state[3]]))
     
-    def change_color(self):
+    def change_color(self, random=False):
         # if self.viewer is not None:
         #     self.viewer.close()
         # self.viewer = None
-        self.polecolor = np.array([1., 0., 1.])
-        self.cartcolor = np.array([0., 1., 1.])
-        self.axlecolor = np.array([1., 1., 0.])
-        self.trackcolor = np.array([0., 1., 0.])
-        self.backgroundcolor = np.array([1., 1., 1.])
+        if not random:
+            self.polecolor = np.array([1., 0., 1.])
+            self.cartcolor = np.array([0., 1., 1.])
+            self.axlecolor = np.array([1., 1., 0.])
+            self.trackcolor = np.array([0., 1., 0.])
+        else:
+            self.polecolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
+            while (np.sum((self.polecolor - np.array([1., 0., 1.]))**2) < 0.1):
+                self.polecolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
+
+            self.cartcolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
+            while (np.sum((self.cartcolor - np.array([0., 1., 1.]))**2) < 0.1):
+                self.cartcolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
+
+            self.axlecolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
+            while (np.sum((self.axlecolor - np.array([1., 1., 0.]))**2) < 0.1):
+                self.axlecolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
+
+            self.trackcolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
+            while (np.sum((self.trackcolor - np.array([0., 1., 0.]))**2) < 0.1):
+                self.trackcolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
+
         self.pole.set_color(self.polecolor[0], self.polecolor[1], self.polecolor[2])
         self.axle.set_color(self.axlecolor[0], self.axlecolor[1], self.axlecolor[2])
         self.cart.set_color(self.cartcolor[0], self.cartcolor[1], self.cartcolor[2])
         self.track.set_color(self.trackcolor[0], self.trackcolor[1], self.trackcolor[2])
+
 
     def render(self, mode='human'):
         screen_width = 64
@@ -213,7 +232,6 @@ class CartPoleVisualEnv(gym.Env):
         self.carttrans.set_translation(cartx, carty)
         self.poletrans.set_rotation(-x[2])
 
-        # print(self.viewer.render(return_rgb_array = True).shape, screen_width, screen_height)
         return self.viewer.render(return_rgb_array = True)
 
     def close(self):
