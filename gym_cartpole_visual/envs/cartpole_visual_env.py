@@ -9,6 +9,7 @@ import gym
 from gym import spaces, logger
 from gym.utils import seeding
 import numpy as np
+import sys
 
 class CartPoleVisualEnv(gym.Env):
     """
@@ -48,11 +49,31 @@ class CartPoleVisualEnv(gym.Env):
         self.masscart = 1.0
         self.masspole = 0.1
         self.total_mass = (self.masspole + self.masscart)
-        self.length = 0.5 # actually half the pole's length
-        self.polemass_length = (self.masspole * self.length)
-        self.force_mag = 10.0
+        # self.polelength = np.random.rand()# 0.5 # actually half the pole's length
+        # self.polewidth = np.random.rand() * 1. + 5.
+        # self.cartwidth = np.random.rand() * 1. + 15.
+        # self.cartheight = np.random.rand() * 1. + 10.
+        self.polelength = 5# 0.5 # actually half the pole's length
+        self.polewidth = 5
+        self.cartwidth = 20
+        self.cartheight = 10
+        self.polemass_length = (self.masspole * self.polelength)
+        # self.force_mag = np.random.rand() * 10.
+        self.force_mag = 10.
         self.tau = 0.02  # seconds between state updates
         self.kinematics_integrator = 'euler'
+        # self.polecolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
+        # self.cartcolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
+        # self.axlecolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
+        # self.trackcolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
+        # self.backgroundcolor = np.random.rand(3, 1)
+        self.polecolor = np.array([0., 0., 1.])
+        self.cartcolor = np.array([1., 1., 0.])
+        self.axlecolor = np.array([1., 0., 1.])
+        self.trackcolor = np.array([0., 1., 1.])
+        self.backgroundcolor = np.array([1., 1., 1.])
+
+        # print(self.polecolor, self.cartcolor, self.axlecolor, self.trackcolor)
 
         # Angle at which to fail the episode
         self.theta_threshold_radians = 12 * 2 * math.pi / 360
@@ -80,13 +101,14 @@ class CartPoleVisualEnv(gym.Env):
 
     def step(self, action):
         assert self.action_space.contains(action), "%r (%s) invalid"%(action, type(action))
+        # print("Inside env, action = ", action)
         state = self.state
         x, x_dot, theta, theta_dot = state
         force = self.force_mag if action==1 else -self.force_mag
         costheta = math.cos(theta)
         sintheta = math.sin(theta)
         temp = (force + self.polemass_length * theta_dot * theta_dot * sintheta) / self.total_mass
-        thetaacc = (self.gravity * sintheta - costheta* temp) / (self.length * (4.0/3.0 - self.masspole * costheta * costheta / self.total_mass))
+        thetaacc = (self.gravity * sintheta - costheta* temp) / (self.polelength * (4.0/3.0 - self.masspole * costheta * costheta / self.total_mass))
         xacc  = temp - self.polemass_length * thetaacc * costheta / self.total_mass
         if self.kinematics_integrator == 'euler':
             x  = x + self.tau * x_dot
@@ -117,50 +139,71 @@ class CartPoleVisualEnv(gym.Env):
             self.steps_beyond_done += 1
             reward = 0.0
 
-        # return np.array(self.state), reward, done, {}
-        return self.render(), reward, done, {}
+        flat_img = (self.render() / 255.).flatten()
+        return np.append(flat_img, np.asarray([self.state[1], self.state[3]])), reward, done, {}
 
     def reset(self):
         self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
         self.steps_beyond_done = None
-        # return np.array(self.state)
-        return self.render()
+        flat_img = (self.render() / 255.).flatten()
+        return np.append(flat_img, np.asarray([self.state[1], self.state[3]]))
+    
+    def change_color(self):
+        # if self.viewer is not None:
+        #     self.viewer.close()
+        # self.viewer = None
+        self.polecolor = np.array([1., 0., 1.])
+        self.cartcolor = np.array([0., 1., 1.])
+        self.axlecolor = np.array([1., 1., 0.])
+        self.trackcolor = np.array([0., 1., 0.])
+        self.backgroundcolor = np.array([1., 1., 1.])
+        self.pole.set_color(self.polecolor[0], self.polecolor[1], self.polecolor[2])
+        self.axle.set_color(self.axlecolor[0], self.axlecolor[1], self.axlecolor[2])
+        self.cart.set_color(self.cartcolor[0], self.cartcolor[1], self.cartcolor[2])
+        self.track.set_color(self.trackcolor[0], self.trackcolor[1], self.trackcolor[2])
 
     def render(self, mode='human'):
-        screen_width = 600
-        screen_height = 400
+        screen_width = 64
+        screen_height = 64
 
         world_width = self.x_threshold*2
         scale = screen_width/world_width
-        carty = 100 # TOP OF CART
-        polewidth = 10.0
-        polelen = scale * 1.0
-        cartwidth = 50.0
-        cartheight = 30.0
+        carty = 10 # TOP OF CART
+        polewidth = self.polewidth # 10
+        polelen = scale * 2 * self.polelength
+        cartwidth = self.cartwidth # 50
+        cartheight = self.cartheight # 30
 
         if self.viewer is None:
             from gym.envs.classic_control import rendering
             self.viewer = rendering.Viewer(screen_width, screen_height)
             l,r,t,b = -cartwidth/2, cartwidth/2, cartheight/2, -cartheight/2
             axleoffset =cartheight/4.0
-            cart = rendering.FilledPolygon([(l,b), (l,t), (r,t), (r,b)])
+            self.cart = rendering.FilledPolygon([(l,b), (l,t), (r,t), (r,b)])
             self.carttrans = rendering.Transform()
-            cart.add_attr(self.carttrans)
-            self.viewer.add_geom(cart)
+            self.cart.add_attr(self.carttrans)
+            self.viewer.add_geom(self.cart)
             l,r,t,b = -polewidth/2,polewidth/2,polelen-polewidth/2,-polewidth/2
-            pole = rendering.FilledPolygon([(l,b), (l,t), (r,t), (r,b)])
-            pole.set_color(.8,.6,.4)
+            self.pole = rendering.FilledPolygon([(l,b), (l,t), (r,t), (r,b)])
+            self.pole.set_color(self.polecolor[0], self.polecolor[1],
+                    self.polecolor[2])
             self.poletrans = rendering.Transform(translation=(0, axleoffset))
-            pole.add_attr(self.poletrans)
-            pole.add_attr(self.carttrans)
-            self.viewer.add_geom(pole)
+            self.pole.add_attr(self.poletrans)
+            self.pole.add_attr(self.carttrans)
+            self.viewer.add_geom(self.pole)
             self.axle = rendering.make_circle(polewidth/2)
             self.axle.add_attr(self.poletrans)
             self.axle.add_attr(self.carttrans)
-            self.axle.set_color(.5,.5,.8)
+            # self.axle.set_color(.5,.5,.8)
+            self.axle.set_color(self.axlecolor[0], self.axlecolor[1],
+                    self.axlecolor[2])
+            self.cart.set_color(self.cartcolor[0], self.cartcolor[1],
+                    self.cartcolor[2])
             self.viewer.add_geom(self.axle)
             self.track = rendering.Line((0,carty), (screen_width,carty))
-            self.track.set_color(0,0,0)
+            # self.track.set_color(0,0,0)
+            self.track.set_color(self.trackcolor[0], self.trackcolor[1],
+                    self.trackcolor[2])
             self.viewer.add_geom(self.track)
 
         if self.state is None: return None
@@ -170,6 +213,7 @@ class CartPoleVisualEnv(gym.Env):
         self.carttrans.set_translation(cartx, carty)
         self.poletrans.set_rotation(-x[2])
 
+        # print(self.viewer.render(return_rgb_array = True).shape, screen_width, screen_height)
         return self.viewer.render(return_rgb_array = True)
 
     def close(self):
