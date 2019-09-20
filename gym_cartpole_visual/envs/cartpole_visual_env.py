@@ -189,8 +189,8 @@ class CartPoleVisualEnv(gym.Env):
 
 
     def render(self, mode='rgb'):
-        screen_width = 64
-        screen_height = 64
+        screen_width = 32
+        screen_height = 32
 
         world_width = self.x_threshold*2
         scale = screen_width/world_width
