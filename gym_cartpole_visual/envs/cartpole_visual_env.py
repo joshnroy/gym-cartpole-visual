@@ -150,9 +150,6 @@ class CartPoleVisualEnv(gym.Env):
         return np.append(flat_img, np.asarray([self.state[1], self.state[3]]))
     
     def change_color(self, random=False):
-        # if self.viewer is not None:
-        #     self.viewer.close()
-        # self.viewer = None
         if not random:
             self.polecolor = np.array([1., 0., 1.])
             self.cartcolor = np.array([0., 1., 1.])
@@ -180,8 +177,18 @@ class CartPoleVisualEnv(gym.Env):
         self.cart.set_color(self.cartcolor[0], self.cartcolor[1], self.cartcolor[2])
         self.track.set_color(self.trackcolor[0], self.trackcolor[1], self.trackcolor[2])
 
+    def change_color_test(self):
+        self.polecolor = np.array([1., 0., 1.])
+        self.cartcolor = np.array([0., 1., 1.])
+        self.axlecolor = np.array([1., 1., 0.])
+        self.trackcolor = np.array([0., 1., 0.])
+        self.pole.set_color(self.polecolor[0], self.polecolor[1], self.polecolor[2])
+        self.axle.set_color(self.axlecolor[0], self.axlecolor[1], self.axlecolor[2])
+        self.cart.set_color(self.cartcolor[0], self.cartcolor[1], self.cartcolor[2])
+        self.track.set_color(self.trackcolor[0], self.trackcolor[1], self.trackcolor[2])
 
-    def render(self, mode='human'):
+
+    def render(self, mode='rgb'):
         screen_width = 64
         screen_height = 64
 
