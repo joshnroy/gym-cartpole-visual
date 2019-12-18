@@ -140,15 +140,15 @@ class CartPoleVisualEnv(gym.Env):
             self.steps_beyond_done += 1
             reward = 0.0
 
-        flat_img = (self.render() / 255.).flatten()
-        return np.append(flat_img, np.asarray([self.state[1], self.state[3]])), reward, done, {}
+        img = self.render() / 255.
+        return (img.astype(np.float32), np.asarray([self.state[1], self.state[3]]).astype(np.float32)), reward, done, {}
 
     def reset(self):
         self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
         self.steps_beyond_done = None
-        flat_img = (self.render() / 255.).flatten()
-        return np.append(flat_img, np.asarray([self.state[1], self.state[3]]))
-    
+        img = self.render() / 255.
+        return (img.astype(np.float32), np.asarray([self.state[1], self.state[3]]).astype(np.float32))
+
     def change_color(self, random=False):
         if not random:
             self.polecolor = np.array([1., 0., 1.])
