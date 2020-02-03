@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 """
 Classic cart-pole system implemented by Rich Sutton et al.
 Copied from http://incompleteideas.net/sutton/book/code/pole.c
@@ -11,6 +11,8 @@ from gym import spaces, logger
 from gym.utils import seeding
 import numpy as np
 import sys
+from random import randrange
+import matplotlib.pyplot as plt
 
 class CartPoleVisualEnv(gym.Env):
     """
@@ -18,15 +20,15 @@ class CartPoleVisualEnv(gym.Env):
         A pole is attached by an un-actuated joint to a cart, which moves along a frictionless track. The pendulum starts upright, and the goal is to prevent it from falling over by increasing and reducing the cart's velocity.
     Source:
         This environment corresponds to the version of the cart-pole problem described by Barto, Sutton, and Anderson
-    Observation: 
+    Observation:
         Type: Image that is the rendered version of the environment
-        
+
     Actions:
         Type: Discrete(2)
         Num	Action
         0	Push cart to the left
         1	Push cart to the right
-        
+
         Note: The amount the velocity is reduced or increased is not fixed as it depends on the angle the pole is pointing. This is because the center of gravity of the pole increases the amount of energy needed to move the cart underneath it
     Reward:
         Reward is 1 for every step taken, including the termination step
@@ -39,42 +41,30 @@ class CartPoleVisualEnv(gym.Env):
         Solved Requirements
         Considered solved when the average reward is greater than or equal to 195.0 over 100 consecutive trials.
     """
-    
+
     metadata = {
         'render.modes': ['human', 'rgb_array'],
         'video.frames_per_second' : 50
     }
 
-    def __init__(self):
+    def __init__(self, num_levels):
         self.gravity = 9.8
         self.masscart = 1.0
         self.masspole = 0.1
         self.total_mass = (self.masspole + self.masscart)
-        # self.polelength = np.random.rand()# 0.5 # actually half the pole's length
-        # self.polewidth = np.random.rand() * 1. + 5.
-        # self.cartwidth = np.random.rand() * 1. + 15.
-        # self.cartheight = np.random.rand() * 1. + 10.
         self.polelength = 5# 0.5 # actually half the pole's length
         self.polewidth = 5
         self.cartwidth = 20
         self.cartheight = 10
         self.polemass_length = (self.masspole * self.polelength)
-        # self.force_mag = np.random.rand() * 10.
         self.force_mag = 10.
         self.tau = 0.02  # seconds between state updates
         self.kinematics_integrator = 'euler'
-        # self.polecolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
-        # self.cartcolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
-        # self.axlecolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
-        # self.trackcolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
-        # self.backgroundcolor = np.random.rand(3, 1)
         self.polecolor = np.array([0., 0., 1.])
         self.cartcolor = np.array([1., 1., 0.])
         self.axlecolor = np.array([1., 0., 1.])
         self.trackcolor = np.array([0., 1., 1.])
         self.backgroundcolor = np.array([1., 1., 1.])
-
-        # print(self.polecolor, self.cartcolor, self.axlecolor, self.trackcolor)
 
         # Angle at which to fail the episode
         self.theta_threshold_radians = 12 * 2 * math.pi / 360
@@ -88,21 +78,27 @@ class CartPoleVisualEnv(gym.Env):
             np.finfo(np.float32).max])
 
         self.action_space = spaces.Discrete(2)
-        self.observation_space = spaces.Box(-high, high, dtype=np.float32)
+        # self.observation_space = spaces.Box(-high, high, dtype=np.float32)
+        self.observation_space = spaces.Box(low=0, high=255, shape=(64, 64, 3), dtype=np.uint8)
 
-        self.seed()
+        self.num_levels = num_levels
+        if self.num_levels == 0:
+            self.seed = self.seed_set(randrange(2**32))
+        else:
+            self.seed = self.seed_set(randrange(self.num_levels))
         self.viewer = None
         self.state = None
 
         self.steps_beyond_done = None
 
-    def seed(self, seed=None):
+    def seed_set(self, seed=None):
+        if seed is not None:
+            np.random.seed(seed)
         self.np_random, seed = seeding.np_random(seed)
-        return [seed]
+        return seed
 
     def step(self, action):
         assert self.action_space.contains(action), "%r (%s) invalid"%(action, type(action))
-        # print("Inside env, action = ", action)
         state = self.state
         x, x_dot, theta, theta_dot = state
         force = self.force_mag if action==1 else -self.force_mag
@@ -140,57 +136,48 @@ class CartPoleVisualEnv(gym.Env):
             self.steps_beyond_done += 1
             reward = 0.0
 
-        img = self.render() / 255.
-        return (img.astype(np.float32), np.asarray([self.state[1], self.state[3]]).astype(np.float32)), reward, done, {}
+        img = self.render().astype(np.uint8)
+        # return (img.astype(np.float32), np.asarray([self.state[1], self.state[3]]).astype(np.float32)), reward, done, {"level_seed": self.seed}
+        done = np.int64(done).astype(np.int32)
+        dic = {"level_seed": np.int64(self.seed).astype(np.int32)}
+        return img, reward, done, dic
 
     def reset(self):
+        if self.num_levels == 0:
+            self.seed = self.seed_set(randrange(2**32))
+        else:
+            self.seed = self.seed_set(randrange(self.num_levels))
         self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
         self.steps_beyond_done = None
-        img = self.render() / 255.
-        return (img.astype(np.float32), np.asarray([self.state[1], self.state[3]]).astype(np.float32))
+        img = self.render().astype(np.uint8)
+        self.change_color()
+        img = self.render().astype(np.uint8)
+        # if self.seed == 0:
+        #     plt.imshow(img)
+        #     plt.savefig("seed0.png")
+        # elif self.seed == 1:
+        #     plt.imshow(img)
+        #     plt.savefig("seed1.png")
 
-    def change_color(self, random=False):
-        if not random:
-            self.polecolor = np.array([1., 0., 1.])
-            self.cartcolor = np.array([0., 1., 1.])
-            self.axlecolor = np.array([1., 1., 0.])
-            self.trackcolor = np.array([0., 1., 0.])
-        else:
-            self.polecolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
-            while (np.sum((self.polecolor - np.array([1., 0., 1.]))**2) < 0.1):
-                self.polecolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
+        # return {"rgb": img.astype(np.float32), "vel": np.asarray([self.state[1], self.state[3]]).astype(np.float32)}
+        return img
 
-            self.cartcolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
-            while (np.sum((self.cartcolor - np.array([0., 1., 1.]))**2) < 0.1):
-                self.cartcolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
-
-            self.axlecolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
-            while (np.sum((self.axlecolor - np.array([1., 1., 0.]))**2) < 0.1):
-                self.axlecolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
-
-            self.trackcolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
-            while (np.sum((self.trackcolor - np.array([0., 1., 0.]))**2) < 0.1):
-                self.trackcolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
+    def change_color(self):
+        self.polecolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
+        self.cartcolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
+        self.axlecolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
+        self.trackcolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
+        self.backgroundcolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
 
         self.pole.set_color(self.polecolor[0], self.polecolor[1], self.polecolor[2])
         self.axle.set_color(self.axlecolor[0], self.axlecolor[1], self.axlecolor[2])
         self.cart.set_color(self.cartcolor[0], self.cartcolor[1], self.cartcolor[2])
         self.track.set_color(self.trackcolor[0], self.trackcolor[1], self.trackcolor[2])
-
-    def change_color_test(self):
-        self.polecolor = np.array([1., 0., 1.])
-        self.cartcolor = np.array([0., 1., 1.])
-        self.axlecolor = np.array([1., 1., 0.])
-        self.trackcolor = np.array([0., 1., 0.])
-        self.pole.set_color(self.polecolor[0], self.polecolor[1], self.polecolor[2])
-        self.axle.set_color(self.axlecolor[0], self.axlecolor[1], self.axlecolor[2])
-        self.cart.set_color(self.cartcolor[0], self.cartcolor[1], self.cartcolor[2])
-        self.track.set_color(self.trackcolor[0], self.trackcolor[1], self.trackcolor[2])
-
+        self.background.set_color(self.backgroundcolor[0], self.backgroundcolor[1], self.backgroundcolor[2])
 
     def render(self, mode='rgb'):
-        screen_width = 32
-        screen_height = 32
+        screen_width = 64
+        screen_height = 64
 
         world_width = self.x_threshold*2
         scale = screen_width/world_width
@@ -203,6 +190,9 @@ class CartPoleVisualEnv(gym.Env):
         if self.viewer is None:
             from gym.envs.classic_control import rendering
             self.viewer = rendering.Viewer(screen_width, screen_height)
+            self.background = rendering.FilledPolygon([(0,0), (0,64), (64,64), (64,0)])
+            self.background.set_color(self.backgroundcolor[0], self.backgroundcolor[1], self.backgroundcolor[2])
+            self.viewer.add_geom(self.background)
             l,r,t,b = -cartwidth/2, cartwidth/2, cartheight/2, -cartheight/2
             axleoffset =cartheight/4.0
             self.cart = rendering.FilledPolygon([(l,b), (l,t), (r,t), (r,b)])
@@ -220,14 +210,12 @@ class CartPoleVisualEnv(gym.Env):
             self.axle = rendering.make_circle(polewidth/2)
             self.axle.add_attr(self.poletrans)
             self.axle.add_attr(self.carttrans)
-            # self.axle.set_color(.5,.5,.8)
             self.axle.set_color(self.axlecolor[0], self.axlecolor[1],
                     self.axlecolor[2])
             self.cart.set_color(self.cartcolor[0], self.cartcolor[1],
                     self.cartcolor[2])
             self.viewer.add_geom(self.axle)
             self.track = rendering.Line((0,carty), (screen_width,carty))
-            # self.track.set_color(0,0,0)
             self.track.set_color(self.trackcolor[0], self.trackcolor[1],
                     self.trackcolor[2])
             self.viewer.add_geom(self.track)
