@@ -92,8 +92,8 @@ class CartPoleVisualEnv(gym.Env):
         self.steps_beyond_done = None
 
     def seed_set(self, seed=None):
-        if seed is not None:
-            np.random.seed(seed)
+        # if seed is not None:
+        #     np.random.seed(seed)
         self.np_random, seed = seeding.np_random(seed)
         return seed
 
@@ -147,6 +147,7 @@ class CartPoleVisualEnv(gym.Env):
             self.seed = self.seed_set(randrange(2**32))
         else:
             self.seed = self.seed_set(randrange(self.num_levels))
+        # self.state = np.random.uniform(low=-0.05, high=0.05, size=(4,))
         self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
         self.steps_beyond_done = None
         img = self.render().astype(np.uint8)
@@ -163,11 +164,11 @@ class CartPoleVisualEnv(gym.Env):
         return img
 
     def change_color(self):
-        self.polecolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
-        self.cartcolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
-        self.axlecolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
-        self.trackcolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
-        self.backgroundcolor = np.clip(np.random.normal(0.5, 0.5, 3), 0., 1.)
+        self.polecolor = np.clip(self.np_random.normal(0.5, 0.5, 3), 0., 1.)
+        self.cartcolor = np.clip(self.np_random.normal(0.5, 0.5, 3), 0., 1.)
+        self.axlecolor = np.clip(self.np_random.normal(0.5, 0.5, 3), 0., 1.)
+        self.trackcolor = np.clip(self.np_random.normal(0.5, 0.5, 3), 0., 1.)
+        self.backgroundcolor = np.clip(self.np_random.normal(0.5, 0.5, 3), 0., 1.)
 
         self.pole.set_color(self.polecolor[0], self.polecolor[1], self.polecolor[2])
         self.axle.set_color(self.axlecolor[0], self.axlecolor[1], self.axlecolor[2])
