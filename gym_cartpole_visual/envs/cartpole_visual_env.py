@@ -47,7 +47,7 @@ class CartPoleVisualEnv(gym.Env):
         'video.frames_per_second' : 50
     }
 
-    def __init__(self, num_levels):
+    def __init__(self, num_levels, start_level):
         self.gravity = 9.8
         self.masscart = 1.0
         self.masspole = 0.1
@@ -70,6 +70,8 @@ class CartPoleVisualEnv(gym.Env):
         self.theta_threshold_radians = 12 * 2 * math.pi / 360
         self.x_threshold = 2.4
 
+        self.offset = start_level
+
         # Angle limit set to 2 * theta_threshold_radians so failing observation is still within bounds
         high = np.array([
             self.x_threshold * 2,
@@ -85,7 +87,8 @@ class CartPoleVisualEnv(gym.Env):
         if self.num_levels == 0:
             self.seed = self.seed_set(randrange(2**32))
         else:
-            self.seed = self.seed_set(randrange(self.num_levels))
+            to_set = randrange(self.num_levels) + self.offset
+            self.seed = self.seed_set(to_set)
         self.viewer = None
         self.state = None
 
@@ -146,9 +149,9 @@ class CartPoleVisualEnv(gym.Env):
         if self.num_levels == 0:
             self.seed = self.seed_set(randrange(2**32))
         else:
-            self.seed = self.seed_set(randrange(self.num_levels))
-        # self.state = np.random.uniform(low=-0.05, high=0.05, size=(4,))
-        self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
+            self.seed = self.seed_set(randrange(self.num_levels) + self.offset)
+        self.state = np.random.uniform(low=-0.05, high=0.05, size=(4,))
+        # self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
         self.steps_beyond_done = None
         img = self.render().astype(np.uint8)
         self.change_color()
