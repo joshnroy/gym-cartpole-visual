@@ -87,7 +87,7 @@ class CartPoleVisualEnv(gym.Env):
         if self.num_levels == 0:
             self.seed = self.seed_set(randrange(2**32))
         else:
-            to_set = randrange(self.num_levels) + self.offset
+            to_set = self.offset
             self.seed = self.seed_set(to_set)
         self.viewer = None
         self.state = None
@@ -142,16 +142,16 @@ class CartPoleVisualEnv(gym.Env):
         img = self.render().astype(np.uint8)
         # return (img.astype(np.float32), np.asarray([self.state[1], self.state[3]]).astype(np.float32)), reward, done, {"level_seed": self.seed}
         done = np.int64(done).astype(np.int32)
-        dic = {"level_seed": np.int64(self.seed).astype(np.int32)}
+        dic = {"level_seed": np.int32(self.seed)}
         return img, reward, done, dic
 
     def reset(self):
         if self.num_levels == 0:
             self.seed = self.seed_set(randrange(2**32))
         else:
-            self.seed = self.seed_set(randrange(self.num_levels) + self.offset)
+            self.seed = self.seed_set(self.offset)
         # self.state = np.random.uniform(low=-0.05, high=0.05, size=(4,))
-        self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
+        self.state = self.np.random.uniform(low=-0.05, high=0.05, size=(4,))
         self.steps_beyond_done = None
         img = self.render().astype(np.uint8)
         self.change_color()
