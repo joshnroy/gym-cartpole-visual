@@ -151,7 +151,7 @@ class CartPoleVisualEnv(gym.Env):
         else:
             self.seed = self.seed_set(self.offset)
         # self.state = np.random.uniform(low=-0.05, high=0.05, size=(4,))
-        self.state = self.np.random.uniform(low=-0.05, high=0.05, size=(4,))
+        self.state = np.random.uniform(low=-0.05, high=0.05, size=(4,))
         self.steps_beyond_done = None
         img = self.render().astype(np.uint8)
         self.change_color()
